@@ -20,3 +20,12 @@ include:
     shield: lily58_right
   - board: nice_nano//zmk
     shield: settings_reset
+  # Diagnostic build for the left half (central), used to debug BLE.
+  # Streams ZMK logs over the USB CDC console -- flash it, plug in, and open
+  # the serial port to see why advertising/pairing is failing.
+  # Not for daily use: it replaces the Studio snippet (only one snippet is
+  # supported per target) and keeps the USB console alive.
+  - board: nice_nano//zmk
+    shield: lily58_left
+    snippet: zmk-usb-logging
+    artifact-name: lily58_left-usblogging
