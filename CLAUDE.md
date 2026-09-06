@@ -69,12 +69,22 @@ The keymap is heavily customized for macOS development with:
 
 ## Power / Battery
 
-RGB underglow and the OLEDs are intentionally disabled. The shield declares a
-36-LED WS2812 chain per half (`config/boards/shields/lily58/lily58.dtsi`), and
-those chips draw ~0.5-1mA each even when dark, so the switched VCC rail must be
-cut to stop the drain -- `CONFIG_ZMK_RGB_UNDERGLOW=n` alone is not enough.
-`&ext_power EP_OFF` (Layer 2) cuts that rail; the state persists in settings.
-Deep sleep (`CONFIG_ZMK_SLEEP=y`) also cuts it automatically after 15 minutes.
+RGB underglow is compiled out. The OLEDs are ON by default.
+
+The shield declares a 36-LED WS2812 chain per half
+(`config/boards/shields/lily58/lily58.dtsi`), and those chips draw ~0.5-1mA
+each even when dark, so `CONFIG_ZMK_RGB_UNDERGLOW=n` alone does not stop the
+drain -- only cutting the switched VCC rail does. On a nice!nano that same rail
+also powers the OLED, so the display and the LED quiescent draw are a package
+deal: keeping the display means keeping the rail up while the board is awake.
+
+What limits the cost:
+- Deep sleep (`CONFIG_ZMK_SLEEP=y`) drops the whole rail after 15 minutes idle.
+- `CONFIG_ZMK_DISPLAY_BLANK_ON_IDLE=y` blanks the OLED after 60s. This turns
+  off pixels only -- the rail, and the LED draw, stay up until deep sleep.
+- `&ext_power EP_ON/EP_OFF/EP_TOG` (Layer 2) cuts the rail by hand. EP_OFF
+  takes the OLED dark with it. The state persists in settings, so a display
+  that stays dark after flashing usually just needs EP_ON.
 
 All power-related Kconfig lives in `config/lily58.conf`. The shield-level
 `.conf` files under `config/boards/shields/lily58/` are deliberately kept free
@@ -84,6 +94,6 @@ of it so the two cannot drift out of sync.
 
 - **Controller**: nice!nano v2 (nRF52840)
 - **Keyboard**: Lily58 Pro split keyboard  
-- **Features**: Rotary encoder support. RGB underglow and OLED displays are compiled out for battery life (see `config/lily58.conf`)
+- **Features**: Rotary encoder support, OLED displays (layer + battery widgets). RGB underglow is compiled out for battery life (see `config/lily58.conf`)
 - **Wireless**: Bluetooth Low Energy with ZMK
 - **Power**: Battery level reporting enabled for both halves
