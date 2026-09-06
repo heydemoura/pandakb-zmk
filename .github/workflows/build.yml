@@ -4,6 +4,10 @@ on:
   push:
     paths:
       - "config/**"
+      # build.yaml defines the build matrix, so a change to it must rebuild.
+      # Without this a new/edited target silently never builds.
+      - "build.yaml"
+      - ".github/workflows/build.yml"
 
 jobs:
   build:
