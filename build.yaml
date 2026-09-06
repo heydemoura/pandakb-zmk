@@ -22,7 +22,11 @@ include:
     shield: settings_reset
   # Same diagnostic build as on zmk-for-lily, so this baseline can be compared
   # like for like.
+  # ZMK_STUDIO is on via the shield confs, and its UART RPC transport needs the
+  # zmk,studio-rpc-uart chosen node that only the studio-rpc-usb-uart snippet
+  # supplies. Only one snippet is allowed per target, so Studio must be off here.
   - board: nice_nano_v2
     shield: lily58_left
     snippet: zmk-usb-logging
     artifact-name: lily58_left-usblogging
+    cmake-args: -DCONFIG_ZMK_STUDIO=n
