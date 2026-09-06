@@ -82,9 +82,20 @@ What limits the cost:
 - Deep sleep (`CONFIG_ZMK_SLEEP=y`) drops the whole rail after 15 minutes idle.
 - `CONFIG_ZMK_DISPLAY_BLANK_ON_IDLE=y` blanks the OLED after 60s. This turns
   off pixels only -- the rail, and the LED draw, stay up until deep sleep.
-- `&ext_power EP_ON/EP_OFF/EP_TOG` (Layer 2) cuts the rail by hand. EP_OFF
-  takes the OLED dark with it. The state persists in settings, so a display
-  that stays dark after flashing usually just needs EP_ON.
+- Only `&ext_power EP_ON` remains bound (Layer 2), as a recovery key.
+
+EP_OFF and EP_TOG were deliberately removed. Cutting the rail is a one-way
+trip for the OLED: ZMK's display module (`app/src/display/main.c`) only calls
+`display_blanking_on/off()` on activity changes and has no `pm_device` resume
+or re-init path -- `initialized` is a one-shot flag set at boot. So when the
+rail is cut the SSD1306 loses its whole register state, and EP_ON restores
+power to a chip that is never re-initialised. The screen stays blank until a
+reboot. Deep sleep is unaffected, because ZMK uses PM_STATE_SOFT_OFF and
+nRF52 SYSTEM OFF wakes via reset, which re-runs display init.
+
+If the display is dark and ext_power was previously turned off, the saved
+state lives in settings: press EP_ON and then reset the board, or flash the
+`settings_reset` firmware.
 
 All power-related Kconfig lives in `config/lily58.conf`. The shield-level
 `.conf` files under `config/boards/shields/lily58/` are deliberately kept free
