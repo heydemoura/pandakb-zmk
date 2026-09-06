@@ -9,11 +9,49 @@ This is a custom ZMK (Zephyr Mechanical Keyboard) firmware configuration for a L
 ## Build System
 
 This project uses GitHub Actions for automated building via `build.yaml`. The build matrix targets:
-- Board: `nice_nano_v2` 
+- Board: `nice_nano_v2`
 - Shields: `lily58_left`, `lily58_right`, `settings_reset`
 - Additional snippet: `studio-rpc-usb-uart` for the left half
+- A diagnostic `lily58_left-usblogging` target (see "Debugging with USB logs")
 
-No local build commands are available - all builds happen through GitHub Actions when pushed to the repository.
+No local build commands are available - all builds happen through GitHub Actions
+when pushed to the repository. The workflow triggers on changes to `config/**`,
+`build.yaml`, and the workflow file itself.
+
+### ZMK version pinning (read before changing)
+
+Two things must stay in lockstep:
+
+- `config/west.yml` pins ZMK to `v0.2.1`
+- `.github/workflows/build.yml` pins the reusable workflow to
+  `build-user-config.yml@v0.2.1`
+
+Do not bump one without the other. The `@main` workflow runs
+`west boards --format "{qualifiers}"`, which requires Zephyr 4.1's hardware
+model v2; against v0.2.1's Zephyr 3.5 it dies with `KeyError: 'qualifiers'` and
+the build fails even though the firmware itself compiles.
+
+Moving to ZMK `main` also requires renaming the board from `nice_nano_v2` to
+`nice_nano//zmk` (HWMv2 board variant), and removing any `label =` property
+from devicetree nodes, since Zephyr 4.x dropped it from device bindings.
+
+We deliberately stayed on `v0.2.1`: there is still no tagged ZMK release on
+Zephyr 4.1 (`v0.3.0` is Zephyr 3.5), so `main` means tracking a moving branch.
+The one measurable power win from newer ZMK is backported below. Revisit when a
+release ships on Zephyr 4.1.
+
+## Debugging with USB logs
+
+`build.yaml` builds a `lily58_left-usblogging` artifact using the
+`zmk-usb-logging` snippet. Flash it to the left half, plug in USB, and open the
+CDC console (`/dev/ttyACM0`, 115200) to see ZMK's own log output -- keymap
+bindings firing, `zmk_ble_prof_select`, `update_advertising`, endpoint
+selection. This is far faster than inferring behaviour from the config.
+
+It is a diagnostic image, not a daily driver: it sets `-DCONFIG_ZMK_STUDIO=n`
+because Studio's UART RPC transport needs the `zmk,studio-rpc-uart` chosen node
+that only the `studio-rpc-usb-uart` snippet provides, and a target may carry
+only one snippet.
 
 ## Architecture
 
@@ -95,6 +133,16 @@ each even when dark, so `CONFIG_ZMK_RGB_UNDERGLOW=n` alone does not stop the
 drain -- only cutting the switched VCC rail does. On a nice!nano that same rail
 also powers the OLED, so the display and the LED quiescent draw are a package
 deal: keeping the display means keeping the rail up while the board is awake.
+
+Other power settings:
+- `CONFIG_SSD1306_DEFAULT_CONTRAST=40` (~16%) dims the OLED. Zephyr's ssd1306
+  driver writes this to the contrast register (0x81) at init, which sets segment
+  drive current. Range 0-255; Zephyr's default is 128, so stock is ~50%, not max.
+  26 is ~10%, 51 is ~20%.
+- `CONFIG_BOARD_ENABLE_DCDC_HV=n` backports ZMK commit 8059e67, which landed in
+  v0.3.0. Upstream measured with a Nordic PPK2 that the nRF52840 high-voltage
+  DC-DC stage *increases* draw on a nice!nano v2 at a typical ~4V battery and
+  3.3V rail. v0.2.1 still defaults it on.
 
 What limits the cost:
 - Deep sleep (`CONFIG_ZMK_SLEEP=y`) drops the whole rail after 15 minutes idle.
