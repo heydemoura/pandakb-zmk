@@ -44,10 +44,28 @@ No local build commands are available - all builds happen through GitHub Actions
 
 **Layer Structure:**
 - Layer 0: Base QWERTY with home row mods
-- Layer 1: Symbols and numpad
+- Layer 1: Symbols and numpad, plus BLE profile (`&bt`) and output-endpoint
+  (`&out`) selection on the top row
 - Layer 2: Window management, function keys, and external power (VCC rail) controls
 - Layer 3: Mouse controls and media keys
 - Layers 4-5: Reserved for future expansion
+
+## Bluetooth
+
+The top row of Layer 1 has both `&bt` and `&out` bindings, and they do
+different things:
+
+- `&bt BT_SEL 0..4` picks which BLE *profile* (host) is active.
+- `&out OUT_BLE / OUT_USB / OUT_TOG` picks the output *endpoint*.
+
+ZMK defaults the endpoint to USB whenever USB is connected, so with the cable
+plugged in the `&bt` keys will appear to do nothing until the output is moved
+to BLE with `&out OUT_BLE`. This is the usual cause of "the BT keys don't work
+and it only types over USB".
+
+If BLE is still broken after that, reset the stored bonds: flash the
+`settings_reset` firmware to BOTH halves, then flash the normal left/right
+firmware to both, then re-pair with the host.
 
 ## Development Workflow
 
