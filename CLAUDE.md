@@ -45,7 +45,7 @@ No local build commands are available - all builds happen through GitHub Actions
 **Layer Structure:**
 - Layer 0: Base QWERTY with home row mods
 - Layer 1: Symbols and numpad
-- Layer 2: Window management and function keys
+- Layer 2: Window management, function keys, and external power (VCC rail) controls
 - Layer 3: Mouse controls and media keys
 - Layers 4-5: Reserved for future expansion
 
@@ -67,10 +67,23 @@ The keymap is heavily customized for macOS development with:
 - Task switching optimizations
 - Mouse and scroll wheel emulation on Layer 3
 
+## Power / Battery
+
+RGB underglow and the OLEDs are intentionally disabled. The shield declares a
+36-LED WS2812 chain per half (`config/boards/shields/lily58/lily58.dtsi`), and
+those chips draw ~0.5-1mA each even when dark, so the switched VCC rail must be
+cut to stop the drain -- `CONFIG_ZMK_RGB_UNDERGLOW=n` alone is not enough.
+`&ext_power EP_OFF` (Layer 2) cuts that rail; the state persists in settings.
+Deep sleep (`CONFIG_ZMK_SLEEP=y`) also cuts it automatically after 15 minutes.
+
+All power-related Kconfig lives in `config/lily58.conf`. The shield-level
+`.conf` files under `config/boards/shields/lily58/` are deliberately kept free
+of it so the two cannot drift out of sync.
+
 ## Hardware Configuration
 
 - **Controller**: nice!nano v2 (nRF52840)
 - **Keyboard**: Lily58 Pro split keyboard  
-- **Features**: RGB underglow, rotary encoder support, OLED displays
+- **Features**: Rotary encoder support. RGB underglow and OLED displays are compiled out for battery life (see `config/lily58.conf`)
 - **Wireless**: Bluetooth Low Energy with ZMK
 - **Power**: Battery level reporting enabled for both halves
